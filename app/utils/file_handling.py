@@ -6,7 +6,9 @@ import uuid
 
 def save_upload_file_tmp(upload_file: UploadFile) -> str:
     try:
-        filename = f"{uuid.uuid4()}_{upload_file.filename}"
+        # Sanitize filename to remove any path components provided by client
+        clean_filename = os.path.basename(upload_file.filename)
+        filename = f"{uuid.uuid4()}_{clean_filename}"
         file_path = os.path.join(settings.UPLOAD_DIR, filename)
         
         with open(file_path, "wb") as buffer:
