@@ -1,0 +1,11 @@
+version: '3.8'
+
+services:
+  api:
+    build: .
+    container_name: medipile_api
+    ports:
+      - "8000:8000"
+    volumes:
+      - /tmp/uploads:/tmp/uploads
+    restart: always
