@@ -1,13 +1,8 @@
 import mediapipe as mp
 import numpy as np
 
-# Fix for "AttributeError: module 'mediapipe' has no attribute 'solutions'"
-# Explicitly import the python module to force registration
-try:
-    import mediapipe.python.solutions as solutions
-    mp_pose = solutions.pose
-except (ImportError, AttributeError):
-    mp_pose = mp.solutions.pose
+# Standard import
+mp_pose = mp.solutions.pose
 
 class PoseEstimator:
     def __init__(self, static_image_mode=False, model_complexity=1, min_detection_confidence=0.5):
