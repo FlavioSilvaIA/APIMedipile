@@ -60,7 +60,24 @@ class MetricsEngine:
         if score >= 0.5: return "regular"
         return "baixa"
 
-    def calculate_metrics(self, history: List[Dict]) -> Dict[str, Any]:
+    def validate_evidence(self, history: List[Dict]) -> bool:
+        """
+        Heuristic to check if there is enough evidence of the exercise.
+        Check if there's a minimum movement (Range of Motion).
+        """
+        l_hip_y = self._extract_series(history, self.L_HIP, 'y')
+        # Remove NaNs for calculation
+        valid_hips = l_hip_y[~np.isnan(l_hip_y)]
+        
+        if len(valid_hips) < 2:
+            return False
+            
+        rom_val = np.nanmax(valid_hips) - np.nanmin(valid_hips)
+        # 0.05 is a heuristic for "some significant vertical movement"
+        # in normalized coordinates (0 to 1)
+        return rom_val > 0.05
+
+    def calculate_metrics(self, history: List[Dict]) -> Tuple[Dict[str, Any], Dict[str, Any]]:
         if not history:
             return {}
         
