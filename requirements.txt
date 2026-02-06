@@ -2,7 +2,8 @@ fastapi
 uvicorn
 python-multipart
 opencv-python-headless
-mediapipe
+mediapipe>=0.10.9
 numpy
 pydantic
 pydantic-settings
+protobuf>=3.20,<5.0

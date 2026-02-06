@@ -1,10 +1,12 @@
 import mediapipe as mp
 import numpy as np
 
+# Explicitly access solutions to ensure registration
+mp_pose = mp.solutions.pose
+
 class PoseEstimator:
     def __init__(self, static_image_mode=False, model_complexity=1, min_detection_confidence=0.5):
-        self.mp_pose = mp.solutions.pose
-        self.pose = self.mp_pose.Pose(
+        self.pose = mp_pose.Pose(
             static_image_mode=static_image_mode,
             model_complexity=model_complexity,
             min_detection_confidence=min_detection_confidence
