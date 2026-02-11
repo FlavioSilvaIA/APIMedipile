@@ -190,4 +190,9 @@ class MetricsEngine:
             "perda_equilibrio": balance_loss_count
         }
 
-        return metricas, eventos, list(set(key_frames))
+        valid_key_frames = []
+        for f_idx in key_frames:
+            if f_idx < len(history) and history[f_idx]['landmarks'] is not None:
+                valid_key_frames.append(f_idx)
+
+        return metricas, eventos, list(set(valid_key_frames))

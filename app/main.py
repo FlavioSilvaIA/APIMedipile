@@ -84,7 +84,10 @@ async def analyze_video(
                 indices = np.linspace(0, len(key_frames) - 1, 5, dtype=int)
                 key_frames = [key_frames[i] for i in indices]
             
-            screenshots = VideoProcessor.extract_screenshots(temp_path, key_frames)
+            # Map landmarks for selected frames
+            landmarks_map = {idx: video_data['history'][idx]['landmarks'] for idx in key_frames}
+            
+            screenshots = VideoProcessor.extract_screenshots(temp_path, key_frames, landmarks_map)
         else:
             screenshots = []
 

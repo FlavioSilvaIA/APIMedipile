@@ -3,6 +3,8 @@ import numpy as np
 
 # Standard import
 mp_pose = mp.solutions.pose
+mp_drawing = mp.solutions.drawing_utils
+mp_drawing_styles = mp.solutions.drawing_styles
 
 class PoseEstimator:
     def __init__(self, static_image_mode=False, model_complexity=1, min_detection_confidence=0.5):
@@ -31,3 +33,32 @@ class PoseEstimator:
                 'visibility': lm.visibility
             })
         return landmarks
+
+    def draw_landmarks(self, frame, landmarks):
+        """
+        Draws landmarks on the frame.
+        'landmarks' is the list of dicts {x, y, z, visibility}.
+        """
+        if not landmarks:
+            return frame
+
+        # Convert list of dicts back to MP landmarks object
+        from mediapipe.framework.formats import landmark_pb2
+        
+        pose_landmarks_proto = landmark_pb2.NormalizedLandmarkList()
+        for lm in landmarks:
+            pose_landmarks_proto.landmark.add(
+                x=lm['x'],
+                y=lm['y'],
+                z=lm['z'],
+                visibility=lm['visibility']
+            )
+
+        # Draw
+        mp_drawing.draw_landmarks(
+            frame,
+            pose_landmarks_proto,
+            mp_pose.POSE_CONNECTIONS,
+            landmark_drawing_spec=mp_drawing_styles.get_default_pose_landmarks_style()
+        )
+        return frame

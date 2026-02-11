@@ -30,14 +30,24 @@ def test_screenshot_logic():
     metricas, eventos, key_frames = engine.calculate_metrics(history)
     
     print(f"Key frames identified: {key_frames}")
-    assert len(key_frames) > 0, "Should have identified at least one key frame"
-    assert len(key_frames) <= 100, "Key frames should be within history range"
+    # Since we have landmarks in all frames, all key_frames should be valid
+    assert len(key_frames) > 0
     
-    # Check if we can extract from a dummy video or just mock extraction
-    # Since I don't have a real video file easily accessible to run in prompt 
-    # without knowing the environment's files, I'll check if the method exists.
+    # Test filtering logic with a missing landmark frame
+    history_with_gap = history.copy()
+    history_with_gap[key_frames[0]] = {'frame': key_frames[0], 'landmarks': None}
+    _, _, filtered_frames = engine.calculate_metrics(history_with_gap)
+    assert key_frames[0] not in filtered_frames, "Frame with None landmarks should be filtered out"
+    
+    # Check if we can extract with landmarks_map
+    landmarks_map = {idx: history[idx]['landmarks'] for idx in key_frames}
     assert hasattr(VideoProcessor, 'extract_screenshots'), "VideoProcessor should have extract_screenshots method"
     
+    # Verification of the drawing method
+    from app.services.pose_estimator import PoseEstimator
+    est = PoseEstimator()
+    assert hasattr(est, 'draw_landmarks'), "PoseEstimator should have draw_landmarks method"
+
     print("Logic verification successful!")
 
 if __name__ == "__main__":

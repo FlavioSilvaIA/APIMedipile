@@ -54,14 +54,20 @@ class VideoProcessor:
         }
 
     @staticmethod
-    def extract_screenshots(video_path: str, frame_indices: list[int]) -> list[str]:
+    def extract_screenshots(video_path: str, frame_indices: list[int], landmarks_map: dict[int, list] = None) -> list[str]:
         """
         Extracts specific frames from a video and returns them as Base64 strings.
+        If landmarks_map is provided, draws the skeleton on the frame.
         """
         screenshots = []
         cap = cv2.VideoCapture(video_path)
         if not cap.isOpened():
             return []
+
+        # We need an instance of PoseEstimator to use draw_landmarks
+        estimator = None
+        if landmarks_map:
+            estimator = PoseEstimator()
 
         # Sort indices to avoid unnecessary seeking
         unique_indices = sorted(list(set(frame_indices)))
@@ -70,8 +76,12 @@ class VideoProcessor:
             cap.set(cv2.CAP_PROP_POS_FRAMES, idx)
             ret, frame = cap.read()
             if ret:
-                # Resize if too large? For now, let's keep original or standard size
-                # encoded_img = cv2.imencode('.jpg', frame, [int(cv2.IMWRITE_JPEG_QUALITY), 80])[1]
+                # Draw landmarks if available
+                if estimator and landmarks_map and idx in landmarks_map:
+                    # MediaPipe drawing utilities expect RGB for some styles? 
+                    # Actually they work on the image passed. We are in BGR here.
+                    estimator.draw_landmarks(frame, landmarks_map[idx])
+
                 _, buffer = cv2.imencode('.jpg', frame, [int(cv2.IMWRITE_JPEG_QUALITY), 70])
                 base64_str = base64.b64encode(buffer).decode('utf-8')
                 screenshots.append(f"data:image/jpeg;base64,{base64_str}")
