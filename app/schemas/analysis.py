@@ -17,3 +17,4 @@ class AnalysisResponse(BaseModel):
     eventos: Dict[str, int]
     frames_analisados: int
     status: str
+    screenshots: Optional[list[str]] = None

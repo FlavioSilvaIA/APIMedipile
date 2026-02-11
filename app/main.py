@@ -72,8 +72,22 @@ async def analyze_video(
                 status="invalido"
             )
 
-        metricas, eventos = engine.calculate_metrics(video_data['history'])
+        metricas, eventos, key_frames = engine.calculate_metrics(video_data['history'])
         
+        # 3. Extract Screenshots (max 5)
+        # Sort key frames and take a diverse sample if many
+        if key_frames:
+            # Sort and take unique
+            key_frames = sorted(list(set(key_frames)))
+            if len(key_frames) > 5:
+                # Simple sampling: first, middle, last and two in between
+                indices = np.linspace(0, len(key_frames) - 1, 5, dtype=int)
+                key_frames = [key_frames[i] for i in indices]
+            
+            screenshots = VideoProcessor.extract_screenshots(temp_path, key_frames)
+        else:
+            screenshots = []
+
         # Build Response
         metadata = AnalysisMetadata(
             idade=idade,
@@ -86,7 +100,8 @@ async def analyze_video(
             metricas=metricas,
             eventos=eventos,
             frames_analisados=video_data['total_frames'],
-            status="analise_concluida"
+            status="analise_concluida",
+            screenshots=screenshots
         )
 
     except Exception as e:

@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+import base64
 from app.services.pose_estimator import PoseEstimator
 
 class VideoProcessor:
@@ -51,3 +52,29 @@ class VideoProcessor:
             "duration": duration,
             "history": landmarks_history
         }
+
+    @staticmethod
+    def extract_screenshots(video_path: str, frame_indices: list[int]) -> list[str]:
+        """
+        Extracts specific frames from a video and returns them as Base64 strings.
+        """
+        screenshots = []
+        cap = cv2.VideoCapture(video_path)
+        if not cap.isOpened():
+            return []
+
+        # Sort indices to avoid unnecessary seeking
+        unique_indices = sorted(list(set(frame_indices)))
+        
+        for idx in unique_indices:
+            cap.set(cv2.CAP_PROP_POS_FRAMES, idx)
+            ret, frame = cap.read()
+            if ret:
+                # Resize if too large? For now, let's keep original or standard size
+                # encoded_img = cv2.imencode('.jpg', frame, [int(cv2.IMWRITE_JPEG_QUALITY), 80])[1]
+                _, buffer = cv2.imencode('.jpg', frame, [int(cv2.IMWRITE_JPEG_QUALITY), 70])
+                base64_str = base64.b64encode(buffer).decode('utf-8')
+                screenshots.append(f"data:image/jpeg;base64,{base64_str}")
+
+        cap.release()
+        return screenshots

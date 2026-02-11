@@ -77,9 +77,11 @@ class MetricsEngine:
         # in normalized coordinates (0 to 1)
         return rom_val > 0.05
 
-    def calculate_metrics(self, history: List[Dict]) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+    def calculate_metrics(self, history: List[Dict]) -> Tuple[Dict[str, Any], Dict[str, Any], List[int]]:
         if not history:
-            return {}
+            return {}, {}, []
+        
+        key_frames = []
         
         # 1. Stability (Estabilidade Tronco)
         # Measure lateral sway of the midpoint between shoulders and hips
@@ -94,6 +96,12 @@ class MetricsEngine:
             "classificacao": self._classify(stability_score),
             "descricao": "Baixa oscilação lateral do tronco detectada." if stability_score > 0.8 else "Oscilação lateral considerável."
         }
+        
+        # Frame with max sway from mean
+        if not np.all(np.isnan(trunk_x)):
+            mean_x = np.nanmean(trunk_x)
+            max_sway_idx = int(np.nanargmax(np.abs(trunk_x - mean_x)))
+            key_frames.append(max_sway_idx)
 
         # 2. Symmetry (Membros Inferiores)
         # Compare left vs right knee Y-movement or Angles
@@ -102,19 +110,25 @@ class MetricsEngine:
         r_knee_y = self._extract_series(history, self.R_KNEE, 'y')
         
         # Mean absolute difference
-        diff = np.nanmean(np.abs(l_knee_y - r_knee_y))
+        diffs = np.abs(l_knee_y - r_knee_y)
+        diff = np.nanmean(diffs)
         symmetry_score = max(0.0, 1.0 - (diff * 5.0))
         symmetry = {
             "valor": round(symmetry_score, 2),
             "classificacao": self._classify(symmetry_score),
             "descricao": "Movimento simétrico entre perna esquerda e direita." if symmetry_score > 0.8 else "Assimetria detectada nos membros inferiores."
         }
+        
+        if not np.all(np.isnan(diffs)):
+            max_asymmetry_idx = int(np.nanargmax(diffs))
+            key_frames.append(max_asymmetry_idx)
 
         # 3. Rhythm (Consistencia)
         # Standard deviation of vertical velocity of hips
         l_hip_y = self._extract_series(history, self.L_HIP, 'y')
         velocity = np.diff(l_hip_y)
-        accel_variance = np.nanstd(np.diff(velocity)) # smoothness
+        accels = np.abs(np.diff(velocity))
+        accel_variance = np.nanstd(accels) # smoothness
         rhythm_score = max(0.0, 1.0 - (accel_variance * 50.0)) # High jitter = bad rhythm
         rhythm = {
             "valor": round(rhythm_score, 2),
@@ -122,9 +136,22 @@ class MetricsEngine:
             "descricao": "Ritmo fluido e constante." if rhythm_score > 0.8 else "Variações bruscas de velocidade."
         }
         
+        if not np.all(np.isnan(accels)):
+            max_jitter_idx = int(np.nanargmax(accels)) + 1 # +1 due to diff
+            key_frames.append(max_jitter_idx)
+        
         # 4. Range of Motion (Amplitude)
         # Max - Min vertical hip movement
-        rom_val = np.nanmax(l_hip_y) - np.nanmin(l_hip_y)
+        valid_indices = np.where(~np.isnan(l_hip_y))[0]
+        if len(valid_indices) > 0:
+            min_y_idx = int(valid_indices[np.argmin(l_hip_y[valid_indices])])
+            max_y_idx = int(valid_indices[np.argmax(l_hip_y[valid_indices])])
+            
+            rom_val = l_hip_y[max_y_idx] - l_hip_y[min_y_idx]
+            key_frames.extend([min_y_idx, max_y_idx])
+        else:
+            rom_val = 0
+            
         # Assuming normalized coordinates (0-1), a full squat might be 0.3-0.5 change
         rom_score = min(1.0, rom_val * 2.0)
         rom = {
@@ -163,4 +190,4 @@ class MetricsEngine:
             "perda_equilibrio": balance_loss_count
         }
 
-        return metricas, eventos
+        return metricas, eventos, list(set(key_frames))
